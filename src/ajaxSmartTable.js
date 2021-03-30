@@ -17,12 +17,63 @@
         control_sort:false,
         sort_field:"",
         sort_type:"",
+        control_paginate:false,
+        paginate_container: "",
+        paginate_cant_by_page: "30",
+        paginate_max: 10,
+        paginationAdapter: function(total, page, cant_by_page, container_id, base_table, paginate_max, callback){
+            let ul = $("<ul />").addClass("pagination");
+
+            let total_pages = Math.ceil(total / cant_by_page);
+
+            let page_start = 0;
+            let page_end = total_pages;
+
+            if(total_pages > paginate_max){
+                let cant_before_and_after = Math.floor(paginate_max / 2);
+
+                if(page > cant_before_and_after){
+                    page_start = page - cant_before_and_after;
+
+                }
+                page_end = page_start + paginate_max;
+
+
+                if(page_end > total_pages){
+                    page_end = total_pages;
+                }
+            }
+
+            for(let p=page_start; p<page_end; p++){
+                let page_element = $("<li />").addClass("page-item");
+
+                if(p===page){
+                    page_element.addClass("active");
+                }
+                let page_link =  $("<a />")
+                    .addClass("page-link")
+                    .attr("href", "#")
+                    .html(p+1)
+                    .data("page",p)
+                    .on("click", callback);
+
+                page_element.append(page_link);
+
+                ul.append(page_element);
+            }
+
+            if(container_id === ""){
+                base_table.after( ul );
+            }else{
+                $("#" +container_id).html(ul);
+            }
+        },
         getDownloadData: function(raw_data){
 
             return raw_data.data;
         },
         getTotals: function(raw_data){
-            return raw_data.totals;
+            return raw_data.total;
         },
         showLabel: function(i, key, all_labels){
             var lbl = "";
@@ -41,7 +92,7 @@
             if (Object.prototype.hasOwnProperty.call(record, field)) {
                 return record[field];
             }else{
-                return "...";
+                return field;
             }
         },
         rowFormat: function(row_element, record){
@@ -50,14 +101,19 @@
         cellFormat: function(cell_element, record, field){
             return cell_element;
         },
-        buildParams: function (instance){
-            var params = instance.params;
+        buildParams: function (settings, page){
+            let params = settings.params;
 
-            if(instance.control_sort){
-                params.sort_field = instance.sort_field;
-                params.sort_type = instance.sort_type
+            if(settings.control_sort){
+                params.sort_field = settings.sort_field;
+                params.sort_type = settings.sort_type
             }
 
+
+            if(settings.control_paginate) {
+                params.page = page;
+
+            }
 
             return params;
         }
@@ -85,7 +141,7 @@
         var obj = this;
 
         obj.settings = settings;
-
+        obj.page=0;
         obj.table = $(element);
 
 
@@ -102,12 +158,14 @@
 
         obj.loadRemoteData=function() {
             //TODO loading class
-            var params = this.settings.buildParams(this.settings);
+            var params = this.settings.buildParams(this.settings, obj.page);
 
             //busca datos en la url
             $.post(this.settings.url,params, function (result) {
 
-                var all_data = obj.settings.getDownloadData(result);
+                let all_data = obj.settings.getDownloadData(result);
+
+                let total = obj.settings.getTotals(result);
 
                 if(all_data.length > 0){
                     //carga el header
@@ -115,6 +173,9 @@
 
                     //carga el body
                     obj.buildData(all_data);
+
+                    //Construye la paginacion
+                    obj.buildPagination(total);
                 }
 
             },this.settings.data_format);
@@ -229,8 +290,28 @@
             obj.loadRemoteData();
         };
 
+        obj.onPaginateClick = function(e){
+            e.preventDefault();
+            let element = $(this);
+
+            obj.page = element.data("page");
+
+            //quita activo
+            element.closest('ul').find(".active").removeClass("active");
+
+            //marca activo
+            element.closest('li').addClass("active");
+
+            obj.loadRemoteData();
+        };
 
 
+        obj.buildPagination=function(total){
+            //si esta habilitada la paginacion
+            if(obj.settings.control_paginate){
+                obj.settings.paginationAdapter(total,obj.page,obj.settings.paginate_cant_by_page,obj.settings.paginate_container,obj.table,obj.settings.paginate_max, obj.onPaginateClick);
+            }
+        };
 
 
     }
