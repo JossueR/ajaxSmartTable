@@ -21,6 +21,8 @@
         paginate_container: "",
         paginate_cant_by_page: "30",
         paginate_max: 10,
+        control_filter:false,
+        filter_container: "",
         paginationAdapter: function(total, page, cant_by_page, container_id, base_table, paginate_max, callback){
             let ul = $("<ul />").addClass("pagination");
 
@@ -68,6 +70,43 @@
                 $("#" +container_id).html(ul);
             }
         },
+
+        filterAdapter: function(container_id, base_table, callback){
+            let filter = $("<div />");
+            filter.addClass("input-group input-group-sm");
+
+            let input = $("<input />");
+            input.attr("type","text")
+                .addClass("form-control")
+                .attr("placeholder","Search")
+                .on("keypress", function(e){
+
+                    if(e.which === 13) {
+                        callback(input);
+                    }
+                });
+
+            let btn = $("<div />")
+                .addClass("input-group-append")
+                .html(
+                    $("<button />")
+                        .addClass("btn btn-default")
+                        .attr("type","submit")
+                        .html("Search")
+                        .on("click", function(e){
+                            e.preventDefault();
+                            callback(input);
+                        })
+                );
+
+            filter.html(input).append(btn);
+
+            if(container_id === ""){
+                base_table.after( filter );
+            }else{
+                $("#" +container_id).html(filter);
+            }
+        },
         getDownloadData: function(raw_data){
 
             return raw_data.data;
@@ -101,7 +140,7 @@
         cellFormat: function(cell_element, record, field){
             return cell_element;
         },
-        buildParams: function (settings, page){
+        buildParams: function (settings, page, filter_text){
             let params = settings.params;
 
             if(settings.control_sort){
@@ -112,6 +151,11 @@
 
             if(settings.control_paginate) {
                 params.page = page;
+
+            }
+
+            if(settings.control_filter) {
+                params.filter = filter_text;
 
             }
 
@@ -142,6 +186,7 @@
 
         obj.settings = settings;
         obj.page=0;
+        obj.filter_text="";
         obj.table = $(element);
 
 
@@ -152,13 +197,15 @@
                 obj.table.addClass("ajaxSmartTable-sort");
             }
 
+            obj.buildFilter();
+
 
             this.loadRemoteData();
         };
 
         obj.loadRemoteData=function() {
             //TODO loading class
-            var params = this.settings.buildParams(this.settings, obj.page);
+            var params = this.settings.buildParams(this.settings, obj.page, obj.filter_text);
 
             //busca datos en la url
             $.post(this.settings.url,params, function (result) {
@@ -311,6 +358,23 @@
             if(obj.settings.control_paginate){
                 obj.settings.paginationAdapter(total,obj.page,obj.settings.paginate_cant_by_page,obj.settings.paginate_container,obj.table,obj.settings.paginate_max, obj.onPaginateClick);
             }
+        };
+
+        obj.buildFilter=function(){
+            //si esta habilitado el filtro
+            if(obj.settings.control_filter){
+                //TODO
+                obj.settings.filterAdapter(obj.settings.filter_container,obj.table,obj.onFilter);
+            }
+        };
+
+        obj.onFilter= function(e){
+
+            let element = $(e);
+
+
+            obj.filter_text = element.val();
+            obj.loadRemoteData();
         };
 
 

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Title</title>
+    <link rel="stylesheet" href="css/bootstrap.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="src/ajaxSmartTable.css" />
+</head>
+<body>
+<main>
+    <div class="container">
+
+        <div class="card  mb-4">
+            <div class="card-header ">
+                <h3 class="card-title ">
+                    Ejemplo básico
+                </h3>
+            </div>
+
+            <div class="card-body">
+                <table id="table_1"></table>
+            </div>
+        </div>
+
+        <div class="card  mb-4">
+            <div class="card-header ">
+                <h3 class="card-title">
+                    Ejemplo Paginación
+                </h3>
+
+            </div>
+            <div class="card-body">
+                <table id="table_5"></table>
+            </div>
+            <div class="card-footer" id="pagination_container">
+
+
+
+            </div>
+        </div>
+
+        <div class="card  mb-4">
+            <div class="card-header ">
+                <h3 class="card-title ">
+                    Ejemplo campos especiales
+                </h3>
+            </div>
+            <div class="card-body">
+                <table id="table_2"></table>
+            </div>
+            <div class="card-footer" id="pagination2">
+            </div>
+        </div>
+
+        <div class="card  mb-4">
+            <div class="card-header ">
+                <h3 class="card-title">
+                    Ejemplo 3 Formato de celda y fila
+                </h3>
+            </div>
+            <div class="card-body">
+                <table id="table_3"></table>
+            </div>
+            <div class="card-footer" id="pagination3">
+            </div>
+        </div>
+
+        <div class="card  mb-4">
+            <div class="card-header ">
+                <h3 class="card-title">
+                    Ejemplo 4 Orden
+                </h3>
+            </div>
+            <div class="card-body">
+                <table id="table_4"></table>
+            </div>
+            <div class="card-footer" id="pagination4">
+            </div>
+        </div>
+
+
+
+        <div class="card  mb-4">
+            <div class="card-header ">
+                <h3 class="card-title">
+                    Ejemplo 6 Filtro
+                </h3>
+
+            </div>
+            <div class="card-body">
+                <table id="table_6"></table>
+            </div>
+            <div class="card-footer" id="pagination6">
+            </div>
+            <div class="card-footer" id="filter_container">
+            </div>
+        </div>
+
+        <div class="card  mb-4">
+            <div class="card-header ">
+                <h3 class="card-title">
+                    Ejemplo 7 completo
+                </h3>
+
+            </div>
+            <div class="card-body">
+                <table id="table_7"></table>
+            </div>
+            <div class="card-footer" id="filter_container7">
+            </div>
+            <div class="card-footer" id="pagination7">
+            </div>
+
+        </div>
+
+    </div>
+
+</main>
+
+
+    <script src="js/jquery-1.9.1.min.js"></script>
+    <script src="js/bootstrap.js"></script>
+
+    <script src="src/ajaxSmartTable.js"></script>
+    <script>
+        $("#table_1").ajaxSmartTable({
+            url:"api.php",
+
+        });
+
+        $("#table_5").ajaxSmartTable({
+            url:"api.php",
+            control_paginate: true,
+            paginate_cant_by_page: 20,
+            paginate_container: "pagination_container"
+        });
+
+
+
+        $("#table_2").ajaxSmartTable({
+            url:"api.php",
+            control_paginate: true,
+            paginate_cant_by_page: 20,
+            paginate_container: "pagination2",
+            fields:[
+                "title","id","otro","mas"
+            ],
+            showField: function(i, field,record){
+                //si el registro existe
+                if (Object.prototype.hasOwnProperty.call(record, field)) {
+                    return record[field];
+                }else{
+                    var data = "";
+                    switch (field){
+                        case "otro":
+                            data = "<a href='#'>hola:" + record.id+"</a>";
+
+                            break;
+
+                            default:
+                                data = "xx";
+                    }
+
+                    return data;
+                }
+            }
+        });
+
+        $("#table_3").ajaxSmartTable({
+            url:"api.php",
+            control_paginate: true,
+            paginate_cant_by_page: 20,
+            paginate_container: "pagination3",
+            rowFormat: function(row_element, record){
+
+                if(record.id===2){
+
+                    $(row_element).css("color","green");
+                }
+                return row_element;
+            },
+            cellFormat: function(cell_element, record, field){
+
+                if(field==="id"){
+
+                    $(cell_element).addClass("ok");
+                }
+                return cell_element;
+            },
+        });
+
+        $("#table_4").ajaxSmartTable({
+            url:"api.php",
+            control_paginate: true,
+            paginate_cant_by_page: 20,
+            paginate_container: "pagination4",
+            control_sort: true
+        });
+
+
+
+        $("#table_6").ajaxSmartTable({
+            url:"api.php",
+            control_paginate: true,
+            paginate_cant_by_page: 20,
+            paginate_container: "pagination5",
+            control_filter: true,
+            filter_container: "filter_container"
+        });
+
+        $("#table_7").ajaxSmartTable({
+            url:"api.php",
+            control_paginate: true,
+            paginate_cant_by_page: 20,
+            paginate_container: "pagination7",
+            control_filter: true,
+            filter_container: "filter_container7",
+            control_sort: true,
+            fields:[
+                "title","id","otro","mas"
+            ],
+            showField: function(i, field,record){
+                //si el registro existe
+                if (Object.prototype.hasOwnProperty.call(record, field)) {
+                    return record[field];
+                }else{
+                    var data = "";
+                    switch (field){
+                        case "otro":
+                            data = "<a href='#'>hola:" + record.id+"</a>";
+
+                            break;
+
+                        default:
+                            data = "xx";
+                    }
+
+                    return data;
+                }
+            },
+            rowFormat: function(row_element, record){
+
+                if(record.id===2){
+
+                    $(row_element).css("color","green");
+                }
+                return row_element;
+            },
+            cellFormat: function(cell_element, record, field){
+
+                if(field==="id"){
+
+                    $(cell_element).addClass("ok");
+                }
+                return cell_element;
+            },
+        });
+    </script>
+</body>
+</html>
