@@ -1,13 +1,15 @@
-/**
- *
- * @param options
- */
+/*
+    A simple jQuery Ajax Table plugin (http://github.com/kylefox/jquery-modal)
+    Version 1.0
+    Copyright © 2021 Jossué Rodriguez
+    Licensed under the MIT license.
 
-
+    https://github.com/JossueR/ajaxSmartTable.git
+*/
 
 (function ( $ ) {
 
-    var defaults = {
+    let defaults = {
         // These are the defaults.
         url: "",
         params: {},
@@ -23,6 +25,8 @@
         paginate_max: 10,
         control_filter:false,
         filter_container: "",
+        filter_btn_text: "Search",
+        filter_placeholder: "Search",
         paginationAdapter: function(total, page, cant_by_page, container_id, base_table, paginate_max, callback){
             let ul = $("<ul />").addClass("pagination");
 
@@ -71,14 +75,14 @@
             }
         },
 
-        filterAdapter: function(container_id, base_table, callback){
+        filterAdapter: function(container_id, base_table, placeholder, btn_text, callback){
             let filter = $("<div />");
-            filter.addClass("input-group input-group-sm");
+            filter.addClass("input-group ");
 
             let input = $("<input />");
             input.attr("type","text")
                 .addClass("form-control")
-                .attr("placeholder","Search")
+                .attr("placeholder",placeholder)
                 .on("keypress", function(e){
 
                     if(e.which === 13) {
@@ -90,9 +94,9 @@
                 .addClass("input-group-append")
                 .html(
                     $("<button />")
-                        .addClass("btn btn-default")
-                        .attr("type","submit")
-                        .html("Search")
+                        .addClass("btn btn-primary")
+                        .attr("type","button")
+                        .html(btn_text)
                         .on("click", function(e){
                             e.preventDefault();
                             callback(input);
@@ -102,7 +106,7 @@
             filter.html(input).append(btn);
 
             if(container_id === ""){
-                base_table.after( filter );
+                base_table.before( filter );
             }else{
                 $("#" +container_id).html(filter);
             }
@@ -115,7 +119,7 @@
             return raw_data.total;
         },
         showLabel: function(i, key, all_labels){
-            var lbl = "";
+            let lbl;
 
             if(all_labels.length > 0 && all_labels.length > i){
 
@@ -160,17 +164,19 @@
             }
 
             return params;
-        }
+        },
+        onLoading:function(){},
+        onLoadingEnd: function(){}
     };
 
     $.fn.ajaxSmartTable = function(options) {
         // This is the easiest way to have default options.
 
-        var settings = $.extend(true, {}, defaults, options );
+        let settings = $.extend(true, {}, defaults, options );
 
         return this.each(function(i, _element) {
             // Do something to each element here.
-            var obj = new AjaxSmartTable($(_element)[0], settings);
+            let obj = new AjaxSmartTable($(_element)[0], settings);
             obj.init();
 
 
@@ -182,12 +188,13 @@
     };
 
     function AjaxSmartTable(element, settings){
-        var obj = this;
+        let obj = this;
 
         obj.settings = settings;
         obj.page=0;
         obj.filter_text="";
         obj.table = $(element);
+        obj.pagination_builded = false;
 
 
 
@@ -204,9 +211,10 @@
         };
 
         obj.loadRemoteData=function() {
-            //TODO loading class
-            var params = this.settings.buildParams(this.settings, obj.page, obj.filter_text);
 
+            let params = this.settings.buildParams(this.settings, obj.page, obj.filter_text);
+
+            obj.settings.onLoading();
             //busca datos en la url
             $.post(this.settings.url,params, function (result) {
 
@@ -225,6 +233,8 @@
                     obj.buildPagination(total);
                 }
 
+                obj.settings.onLoadingEnd();
+
             },this.settings.data_format);
         };
 
@@ -232,23 +242,23 @@
 
 
 
-            if(obj.settings.fields.length==0){
+            if(obj.settings.fields.length===0){
 
-                for (var key in record) {
+                for (let key in record) {
 
                     obj.settings.fields.push(key);
                 }
             }
 
-            if(obj.table.find("thead").length==0){
-                var header = $("<thead />");
+            if(obj.table.find("thead").length===0){
+                let header = $("<thead />");
 
                 record = obj.settings.fields;
 
 
-                for (var i=0; i<record.length;i++) {
-                    var key = record[i];
-                    var field = $("<th />").html(obj.settings.showLabel(i,key,obj.settings.labels));
+                for (let i=0; i<record.length;i++) {
+                    let key = record[i];
+                    let field = $("<th />").html(obj.settings.showLabel(i,key,obj.settings.labels));
 
                     //si esta habilitado el reordenado
                     if(obj.settings.control_sort){
@@ -267,16 +277,16 @@
         };
 
         obj.buildData = function(data){
-            var body = $("<tbody />");
+            let body = $("<tbody />");
 
-            var arrayLength = data.length;
-            for (var i = 0; i < arrayLength; i++) {
-                var row = obj.buildRow(data[i]);
+            let arrayLength = data.length;
+            for (let i = 0; i < arrayLength; i++) {
+                let row = obj.buildRow(data[i]);
 
                 body.append(row);
             }
 
-            var last_body = obj.table.find("tbody");
+            let last_body = obj.table.find("tbody");
             if(last_body.length>0){
                 last_body.remove();
             }
@@ -285,13 +295,13 @@
         };
 
         obj.buildRow = function(record){
-            var row = obj.settings.rowFormat($("<tr />"),record);
+            let row = obj.settings.rowFormat($("<tr />"),record);
 
 
-            for (var i=0; i<obj.settings.fields.length;i++) {
-                var key = obj.settings.fields[i];
+            for (let i=0; i<obj.settings.fields.length;i++) {
+                let key = obj.settings.fields[i];
 
-                var field = obj.settings.cellFormat($("<td />"),record, key)
+                let field = obj.settings.cellFormat($("<td />"),record, key)
                 field = field.html(obj.settings.showField(i,key,record));
 
                 row.append(field)
@@ -301,27 +311,27 @@
         };
 
         obj.onReorder = function(e){
-            var element = $(this);
+            let element = $(this);
 
-            //busca el anteriore seleccionado
-
-
-            var selected_field = element.attr("aria-field");
-            var actual_field = obj.settings.sort_field;
+            //busca el anterior seleccionado
 
 
+            let selected_field = element.attr("aria-field");
+            let actual_field = obj.settings.sort_field;
 
-            if(actual_field == selected_field){
 
-                if(obj.settings.sort_type == "asc"){
+
+            if(actual_field === selected_field){
+
+                if(obj.settings.sort_type === "asc"){
                     obj.settings.sort_type = "desc";
                 }else{
                     obj.settings.sort_type = "asc";
                 }
             }else{
 
-                if(actual_field != ""){
-                    var last = obj.table.find("[aria-sort]");
+                if(actual_field !== ""){
+                    let last = obj.table.find("[aria-sort]");
                     last.removeAttr("aria-sort");
                 }
 
@@ -330,7 +340,7 @@
 
             obj.settings.sort_field = selected_field;
 
-            //agrega a seleccion
+            //agrega a selección
             element.attr("aria-sort", obj.settings.sort_type);
 
             //actualiza datos
@@ -354,17 +364,18 @@
 
 
         obj.buildPagination=function(total){
-            //si esta habilitada la paginacion
-            if(obj.settings.control_paginate){
+            //si esta habilitada la paginacion y no esta construida
+            if(obj.settings.control_paginate && !obj.pagination_builded){
                 obj.settings.paginationAdapter(total,obj.page,obj.settings.paginate_cant_by_page,obj.settings.paginate_container,obj.table,obj.settings.paginate_max, obj.onPaginateClick);
+                obj.pagination_builded = true;
             }
         };
 
         obj.buildFilter=function(){
             //si esta habilitado el filtro
             if(obj.settings.control_filter){
-                //TODO
-                obj.settings.filterAdapter(obj.settings.filter_container,obj.table,obj.onFilter);
+
+                obj.settings.filterAdapter(obj.settings.filter_container,obj.table, obj.settings.filter_placeholder, obj.settings.filter_btn_text ,obj.onFilter);
             }
         };
 
