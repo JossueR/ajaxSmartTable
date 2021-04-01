@@ -24,6 +24,7 @@ Solo clonar el repositorio y agregar las siguientes lineas en el html
 Se incluye un pequeño demo para probar el plugin.
 El demo incluye un pequeño api en php, que provee datos en formato json
 
+* Puede ver los ejemplos en el siguiente enlace: http://sysmyapp.com/ajaxsmarttable/
 
 ## Uso Básico
 ```js
