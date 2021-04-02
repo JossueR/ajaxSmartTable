@@ -174,7 +174,7 @@
 
 
                 if (obj.settings.control_sort) {
-                    obj.table.addClass("ajaxSmartTable-sort");
+                    obj.container.addClass("ajaxSmartTable-sort");
                 }
 
                 obj.buildFilter();
@@ -279,7 +279,7 @@
             obj.buildPagination = function (total) {
                 //si esta habilitada la paginación y no esta construida
                 if (obj.settings.control_paginate && !obj.pagination_builded) {
-                    obj.settings.paginationAdapter(total, obj.page, obj.settings.paginate_cant_by_page, obj.settings.paginate_container, obj.table, obj.settings.paginate_max, obj.onPaginateClick);
+                    obj.settings.paginationAdapter(total, obj.page, obj.settings.paginate_cant_by_page, obj.settings.paginate_container, obj.container, obj.settings.paginate_max, obj.onPaginateClick);
                     obj.pagination_builded = true;
                 }
             }
@@ -290,7 +290,7 @@
                     if (obj.settings.paginate_container !== "") {
                         $("#" + obj.settings.paginate_container).empty()
                     } else {
-                        obj.table.next().remove();
+                        obj.container.next().remove();
                     }
 
                     obj.pagination_builded = false;
@@ -303,7 +303,7 @@
                 //si esta habilitado el filtro
                 if (obj.settings.control_filter) {
 
-                    obj.settings.filterAdapter(obj.settings.filter_container, obj.table, obj.settings.filter_placeholder, obj.settings.filter_btn_text, obj.onFilter);
+                    obj.settings.filterAdapter(obj.settings.filter_container, obj.container, obj.settings.filter_placeholder, obj.settings.filter_btn_text, obj.onFilter);
                 }
             }
 
