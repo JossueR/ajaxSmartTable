@@ -10,6 +10,8 @@
 (function ( $ ) {
     let defaults = {
         // These are the defaults.
+        resultSet: [],
+        bindTagId:"data-sl-bind_id",
         url_data: "",
         url_template: "",
         params: {},
@@ -125,7 +127,7 @@
 
             if(settings.control_paginate) {
                 params.page = page;
-
+                params.cant_by_page = settings.paginate_cant_by_page;
             }
 
             if(settings.control_filter) {
@@ -135,9 +137,9 @@
 
             return params;
         },
-        onBind: function(record, view){
+        onBind: function(record, view, bindTagId){
             for (let key in record) {
-                view.find("[data-sl-bind_id="+key+"]").html(record[key]);
+                view.find("["+bindTagId+"="+key+"]").html(record[key]);
             }
         },
         onLoading:function(){},
@@ -147,13 +149,12 @@
     $.fn.ajaxSmartList = function(options) {
         // This is the easiest way to have default options.
 
-        let settings = $.extend(true, {}, defaults, options );
+        let settings = $.extend(true, {}, defaults, options);
 
-        return this.each(function(i, _element) {
+        return this.each(function (i, _element) {
             // Do something to each element here.
             let obj = new AjaxSmartList($(_element)[0], settings);
             obj.init();
-
 
 
         });
@@ -169,17 +170,18 @@
             obj.template = null;
 
 
-            obj.init = function(){
+            obj.init = function () {
 
-                if(obj.settings.control_sort){
+
+                if (obj.settings.control_sort) {
                     obj.table.addClass("ajaxSmartTable-sort");
                 }
 
                 obj.buildFilter();
 
                 obj.loadRemoteTemplate();
-                obj.loadRemoteData();
-            };
+
+            }
 
             /**
              * Busca un template con el que se construirá cada dato
@@ -189,42 +191,61 @@
 
 
                 //busca datos en la url
-                $.post(this.settings.url_template,params, function (result) {
+                $.post(this.settings.url_template, params, function (result) {
 
                     obj.template = $($.parseHTML(result));
-
-
+                    obj.loadRemoteData();
 
                 });
             }
 
-            obj.loadRemoteData=function() {
+            obj.loadRemoteData = function () {
 
-                let params = this.settings.buildParams(this.settings, obj.page, obj.filter_text);
+                if(obj.settings.resultSet.length>0){
 
-                obj.settings.onLoading();
-                //busca datos en la url
-                $.post(this.settings.url_data,params, function (result) {
+                    let newResultSet = obj.localFilter(obj.settings.resultSet);
+                    obj.localSort(newResultSet);
+                    newResultSet = obj.localPaging(newResultSet);
 
-                    let all_data = obj.settings.getDownloadData(result);
+                    obj.onDataLoaded(newResultSet);
+                }else{
+                    let params = this.settings.buildParams(this.settings, obj.page, obj.filter_text);
 
-                    let total = obj.settings.getTotals(result);
+                    obj.settings.onLoading();
+                    //busca datos en la url
+                    $.post(this.settings.url_data, params, obj.onDataLoaded, this.settings.data_format);
+                }
 
-                    if(all_data.length > 0){
 
-                        //carga el body
-                        obj.buildData(all_data);
+            }
 
-                        //Construye la paginación
-                        obj.buildPagination(total);
-                    }
+            obj.onDataLoaded=function (result) {
 
-                    obj.settings.onLoadingEnd();
+                let all_data = obj.settings.getDownloadData(result);
+                let total = 0;
+                if(obj.settings.resultSet.length>0){
+                    total = obj.settings.getTotals(obj.localFilter(obj.settings.resultSet));
+                }else{
+                    total = obj.settings.getTotals(result);
+                }
 
-                },this.settings.data_format);
+
+                if(all_data.length > 0){
+
+
+                    //carga el body
+                    obj.buildData(all_data);
+
+                    //Construye la paginación
+                    obj.destroyPagination();
+                    obj.buildPagination(total);
+                }
+
+                obj.settings.onLoadingEnd();
+
             };
 
-            obj.buildData = function(data){
+            obj.buildData = function (data) {
 
 
                 let arrayLength = data.length;
@@ -232,15 +253,15 @@
                 for (let i = 0; i < arrayLength; i++) {
                     let view = obj.template.clone();
 
-                    obj.settings.onBind(data[i], view);
+                    obj.settings.onBind(data[i], view, obj.settings.bindTagId);
 
                     obj.container.append(view);
                 }
 
 
-            };
+            }
 
-            obj.onPaginateClick = function(e){
+            obj.onPaginateClick = function (e) {
                 e.preventDefault();
                 let element = $(this);
 
@@ -253,34 +274,114 @@
                 element.closest('li').addClass("active");
 
                 obj.loadRemoteData();
-            };
+            }
 
-            obj.buildPagination=function(total){
-                //si esta habilitada la paginacion y no esta construida
-                if(obj.settings.control_paginate && !obj.pagination_builded){
-                    obj.settings.paginationAdapter(total,obj.page,obj.settings.paginate_cant_by_page,obj.settings.paginate_container,obj.table,obj.settings.paginate_max, obj.onPaginateClick);
+            obj.buildPagination = function (total) {
+                //si esta habilitada la paginación y no esta construida
+                if (obj.settings.control_paginate && !obj.pagination_builded) {
+                    obj.settings.paginationAdapter(total, obj.page, obj.settings.paginate_cant_by_page, obj.settings.paginate_container, obj.table, obj.settings.paginate_max, obj.onPaginateClick);
                     obj.pagination_builded = true;
                 }
-            };
+            }
 
-            obj.buildFilter=function(){
-                //si esta habilitado el filtro
-                if(obj.settings.control_filter){
+            obj.destroyPagination = function () {
+                if (obj.pagination_builded) {
 
-                    obj.settings.filterAdapter(obj.settings.filter_container,obj.table, obj.settings.filter_placeholder, obj.settings.filter_btn_text ,obj.onFilter);
+                    if (obj.settings.paginate_container !== "") {
+                        $("#" + obj.settings.paginate_container).empty()
+                    } else {
+                        obj.table.next().remove();
+                    }
+
+                    obj.pagination_builded = false;
+
+
                 }
-            };
+            }
 
-            obj.onFilter= function(e){
+            obj.buildFilter = function () {
+                //si esta habilitado el filtro
+                if (obj.settings.control_filter) {
+
+                    obj.settings.filterAdapter(obj.settings.filter_container, obj.table, obj.settings.filter_placeholder, obj.settings.filter_btn_text, obj.onFilter);
+                }
+            }
+
+            obj.onFilter = function (e) {
 
                 let element = $(e);
 
 
                 obj.filter_text = element.val();
+                obj.page = 0;
                 obj.loadRemoteData();
-            };
+            }
+
+            obj.localFilter = function (result) {
+                let records_filtered = [];
+
+                for (let i = 0; i < result.length; i++) {
+                    let record = result[i];
+
+
+                    for (let key in record) {
+
+                        let ok = String(record[key]).indexOf(obj.filter_text);
+                        if (ok !== -1) {
+                            records_filtered.push(record);
+                            break;
+                        }
+                    }
+
+                }
+
+                return records_filtered;
+            }
+
+
+            obj.localSort = function (result) {
+
+                if (obj.settings.control_sort) {
+
+                    result.sort(function (a, b) {
+                        let comparison = 0;
+
+                        if (a[obj.settings.sort_field] > b[obj.settings.sort_field]) {
+                            comparison = 1;
+                        }
+                        if (a[obj.settings.sort_field] < b[obj.settings.sort_field]) {
+                            comparison = -1;
+                        }
+
+                        if (obj.settings.sort_type !== "asc") {
+                            comparison = comparison * -1;
+                        }
+
+                        return comparison;
+                    });
+                }
+            }
+
+            obj.localPaging = function (result) {
+                let pageSet = [];
+
+                if (obj.settings.control_paginate) {
+                    let start = obj.page * obj.settings.paginate_cant_by_page;
+                    let end = start + obj.settings.paginate_cant_by_page;
+
+
+                    for (let i = start; i < end && i < result.length; i++) {
+                        pageSet.push(result[i]);
+                    }
+                } else {
+                    pageSet = result;
+                }
+
+
+                return pageSet;
+            }
+
 
         }
-
     }
 }( jQuery ));
