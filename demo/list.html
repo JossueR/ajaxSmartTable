@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AjaxSmartList</title>
+    <link rel="stylesheet" href="css/bootstrap.css" />
+</head>
+<body>
+<main>
+    <div class="container">
+
+        <div class="card  mb-4">
+            <div class="card-header ">
+                <h3 class="card-title ">
+                    Ejemplo básico
+                </h3>
+            </div>
+
+            <div class="card-body"  >
+                <div class="row" id="list1">
+
+                </div>
+            </div>
+            <div class="card-footer" id="filter1">
+            </div>
+            <div class="card-footer" id="pagination1">
+            </div>
+        </div>
+
+
+
+    </div>
+
+</main>
+
+
+    <script src="js/jquery-1.9.1.min.js"></script>
+    <script src="js/bootstrap.js"></script>
+
+    <script src="../src/ajaxSmartList.js"></script>
+    <script>
+        $("#list1").ajaxSmartList({
+            url_template: "template.html",
+            url_data: "api.php",
+
+            control_paginate: true,
+            paginate_cant_by_page: 15,
+            paginate_container: "pagination1",
+
+            control_filter: true,
+            filter_container: "filter1"
+        });
+    </script>
+</body>
+</html>

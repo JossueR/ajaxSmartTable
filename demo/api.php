@@ -18,7 +18,7 @@ $page = (isset($_REQUEST["page"]))? $_REQUEST["page"] : null;
 $filter = (isset($_REQUEST["filter"]))? $_REQUEST["filter"] : null;
 $sort_field = (isset($_REQUEST["sort_field"]) && $_REQUEST["sort_field"] != "")? $_REQUEST["sort_field"] : null;
 $sort_type = (isset($_REQUEST["sort_type"]))? $_REQUEST["sort_type"] : null;
-$cant_by_page = 15;
+$cant_by_page = (isset($_REQUEST["cant_by_page"]))? $_REQUEST["cant_by_page"] : 15;
 
 
 
@@ -33,40 +33,51 @@ if(!is_null($sort_field)){
     usort($data, build_sorter($sort_field, $t));
 }
 
+/****Filter data***/
+$filtered_data = array();
+for($i= 0; $i < count($data); $i++){
+    $record = $data[$i];
+
+
+
+    if($filter != null){
+        $apply = false;
+        foreach ($record as $field){
+
+            if(strpos($field,$filter) !== false){
+                $apply = true;
+                break;
+            }
+
+        }
+    }else{
+        $apply = true;
+    }
+
+    if($apply){
+        $filtered_data[] =  $record;
+    }
+
+}
+
+/****************/
+
     $send_data = array();
 
     if(is_null($page)){
         $page = 0;
-        $cant_by_page = count($data);
+        $cant_by_page = count($filtered_data);
     }
-
-
 
 
     $start= $page * $cant_by_page;
 
-    for($i= $start; $i < $start + $cant_by_page; $i++){
-        $record = $data[$i];
+    for($i= $start; $i < $start + $cant_by_page && $i <count($filtered_data) ; $i++){
+        $record = $filtered_data[$i];
 
 
+        $send_data[] =  $record;
 
-        if($filter != null){
-            $apply = false;
-            foreach ($record as $field){
-
-                if(strpos($field,$filter) !== false){
-                    $apply = true;
-                    break;
-                }
-
-            }
-        }else{
-            $apply = true;
-        }
-
-        if($apply){
-            $send_data[] =  $record;
-        }
 
     }
 
@@ -76,5 +87,5 @@ header('Cache-Control: no-cache, must-revalidate');
 header('Content-type: application/json');
 echo json_encode(array(
     "data"=>$send_data,
-    "total"=>count($data)
+    "total"=>count($filtered_data)
 ));
