@@ -1,5 +1,5 @@
 /*
-    A simple jQuery Ajax Table plugin (http://github.com/kylefox/jquery-modal)
+    A simple jQuery Ajax Table plugin
     Version 1.0
     Copyright © 2021 Jossué Rodriguez
     Licensed under the MIT license.
