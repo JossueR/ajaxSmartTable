@@ -11,6 +11,7 @@
 
     let defaults = {
         // These are the defaults.
+        use_local_data:false,
         resultSet: [],
         url: "",
         params: {},
@@ -176,9 +177,17 @@
         let settings = $.extend(true, {}, defaults, options );
 
         return this.each(function(i, _element) {
-            // Do something to each element here.
-            let obj = new AjaxSmartTable($(_element)[0], settings);
-            obj.init();
+
+            let obj = $(_element).data('AjaxSmartTable');
+
+            if(obj){
+                obj.refresh();
+            }else{
+                obj = new AjaxSmartTable($(_element)[0], settings);
+                $(_element).data('AjaxSmartTable', obj);
+                obj.init();
+            }
+
 
 
             //si no esta inicializado
@@ -196,6 +205,10 @@
         obj.filter_text="";
         obj.table = $(element);
         obj.pagination_builded = false;
+
+        obj.refresh = function(){
+            obj.loadRemoteData();
+        };
 
 
 

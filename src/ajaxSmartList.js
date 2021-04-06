@@ -10,6 +10,7 @@
 (function ( $ ) {
     let defaults = {
         // These are the defaults.
+        use_local_data:false,
         resultSet: [],
         bindTagId:"data-sl-bind_id",
         url_data: "",
@@ -21,6 +22,15 @@
         paginate_container: "",
         paginate_cant_by_page: "30",
         paginate_max: 10,
+        use_more:false,
+        modeAdapter:function(){
+            let more = $("<a />");
+            more.html("More")
+                .attr("href","#")
+                .addClass("asl-more col-12 mb-4");
+
+            return more;
+        },
         control_filter:false,
         filter_container: "",
         filter_btn_text: "Search",
@@ -137,14 +147,25 @@
 
             return params;
         },
-        onBind: function(record, view, bindTagId){
+        onBind: function(record, view, bindTagId, x, total){
             for (let key in record) {
                 view.find("["+bindTagId+"="+key+"]").html(record[key]);
             }
         },
+        onFinish: function(view){
+
+        },
         onLoading:function(){},
         onLoadingEnd: function(){}
     };
+
+    function ExceptionAjaxSmartList(mensaje) {
+        this.mensaje = mensaje;
+        this.nombre = "ExceptionAjaxSmartList";
+        this.toString = function() {
+            return this.nombre + ": " + this.mensaje
+        };
+    }
 
     $.fn.ajaxSmartList = function(options) {
         // This is the easiest way to have default options.
@@ -152,10 +173,17 @@
         let settings = $.extend(true, {}, defaults, options);
 
         return this.each(function (i, _element) {
-            // Do something to each element here.
-            let obj = new AjaxSmartList($(_element)[0], settings);
-            obj.init();
 
+
+            let obj = $(_element).data('AjaxSmartList');
+
+            if(obj){
+                obj.refresh();
+            }else{
+                obj = new AjaxSmartList($(_element)[0], settings);
+                $(_element).data('AjaxSmartList', obj);
+                obj.init();
+            }
 
         });
 
@@ -168,6 +196,12 @@
             obj.container = $(element);
             obj.pagination_builded = false;
             obj.template = null;
+            obj.more_element = null;
+
+            obj.refresh = function(){
+                obj.loadRemoteTemplate();
+                obj.loadRemoteData();
+            };
 
 
             obj.init = function () {
@@ -175,6 +209,10 @@
 
                 if (obj.settings.control_sort) {
                     obj.container.addClass("ajaxSmartTable-sort");
+                }
+
+                if(obj.settings.use_more){
+                    obj.settings.control_paginate=true;
                 }
 
                 obj.buildFilter();
@@ -187,11 +225,11 @@
              * Busca un template con el que se construirá cada dato
              */
             obj.loadRemoteTemplate = function () {
-                let params = this.settings.buildParams(this.settings, obj.page, obj.filter_text);
+
 
 
                 //busca datos en la url
-                $.post(this.settings.url_template, params, function (result) {
+                $.post(this.settings.url_template, {}, function (result) {
 
                     obj.template = $($.parseHTML(result));
                     obj.loadRemoteData();
@@ -201,7 +239,7 @@
 
             obj.loadRemoteData = function () {
 
-                if(obj.settings.resultSet.length>0){
+                if(obj.settings.use_local_data){
 
                     let newResultSet = obj.localFilter(obj.settings.resultSet);
                     obj.localSort(newResultSet);
@@ -222,11 +260,21 @@
             obj.onDataLoaded=function (result) {
 
                 let all_data = obj.settings.getDownloadData(result);
+
+
                 let total = 0;
-                if(obj.settings.resultSet.length>0){
+                if(obj.settings.use_local_data){
                     total = obj.settings.getTotals(obj.localFilter(obj.settings.resultSet));
                 }else{
                     total = obj.settings.getTotals(result);
+                }
+
+                if(!Array.isArray(all_data)){
+                    throw new ExceptionAjaxSmartList("getDownloadData no retorno un arreglo de datos");
+                }
+
+                if(typeof total != 'number'){
+                    throw new ExceptionAjaxSmartList("getTotals no retorno cantidad de registros");
                 }
 
 
@@ -239,6 +287,12 @@
                     //Construye la paginación
                     obj.destroyPagination();
                     obj.buildPagination(total);
+                }else{
+                    if(obj.settings.use_more){
+                        if( obj.more_element != null){
+                            obj.more_element.remove();
+                        }
+                    }
                 }
 
                 obj.settings.onLoadingEnd();
@@ -247,18 +301,35 @@
 
             obj.buildData = function (data) {
 
+                if(obj.settings.use_more ){
+                    if( obj.more_element != null){
+                        obj.more_element.remove();
+                    }
+                }else{
+                    obj.container.empty();
+                }
 
                 let arrayLength = data.length;
-                obj.container.empty()
+
                 for (let i = 0; i < arrayLength; i++) {
                     let view = obj.template.clone();
 
-                    obj.settings.onBind(data[i], view, obj.settings.bindTagId);
+                    obj.settings.onBind(data[i], view, obj.settings.bindTagId, i, arrayLength);
 
                     obj.container.append(view);
                 }
 
+                if(obj.settings.use_more){
+                    obj.more_element = obj.settings.modeAdapter();
+                    obj.more_element.on("click",function (e){
+                        e.preventDefault();
+                        obj.page++;
+                        obj.loadRemoteData();
+                    });
+                    obj.container.append(obj.more_element);
+                }
 
+                obj.settings.onFinish(obj.container);
             }
 
             obj.onPaginateClick = function (e) {
@@ -278,7 +349,7 @@
 
             obj.buildPagination = function (total) {
                 //si esta habilitada la paginación y no esta construida
-                if (obj.settings.control_paginate && !obj.pagination_builded) {
+                if (obj.settings.control_paginate && !obj.pagination_builded && !obj.settings.use_more) {
                     obj.settings.paginationAdapter(total, obj.page, obj.settings.paginate_cant_by_page, obj.settings.paginate_container, obj.container, obj.settings.paginate_max, obj.onPaginateClick);
                     obj.pagination_builded = true;
                 }
@@ -314,6 +385,9 @@
 
                 obj.filter_text = element.val();
                 obj.page = 0;
+                if(obj.settings.use_more){
+                    obj.container.empty();
+                }
                 obj.loadRemoteData();
             }
 
